@@ -11,7 +11,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
+import org.apache.log4j.BasicConfigurator;
 /**
  * @author anqi
  */
@@ -23,6 +28,12 @@ public class RestHighLevelClientConfig {
     private String host;
     @Value("${es.port}")
     private int port;
+    
+    @Value("${es.user}")
+    private String user;
+    @Value("${es.password}")
+    private String password;
+    
     @Value("${es.scheme}")
     private String scheme;
     @Value("${es.token}")
@@ -36,6 +47,13 @@ public class RestHighLevelClientConfig {
 
     @Bean
     public RestClientBuilder restClientBuilder() {
+        BasicConfigurator.configure();
+        // 设置验证信息，填写账号及密码
+        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(AuthScope.ANY,
+                new UsernamePasswordCredentials(user, password));
+        // 初始化 RestClient, hostName 和 port 填写集群的内网 VIP 地址与端口
+        
         RestClientBuilder restClientBuilder = RestClient.builder(
                 new HttpHost(host, port, scheme)
         );
@@ -53,6 +71,15 @@ public class RestHighLevelClientConfig {
                 System.out.println("监听某个es节点失败");
             }
         });
+        
+        // 设置认证信息
+        restClientBuilder.setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+                    @Override
+                    public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
+                        return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                    }
+                });
+        
         restClientBuilder.setRequestConfigCallback(builder ->
                 builder.setConnectTimeout(connectTimeOut).setSocketTimeout(socketTimeout));
         return restClientBuilder;
