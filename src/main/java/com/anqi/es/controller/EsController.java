@@ -30,7 +30,7 @@ public class EsController {
                 "  \"date\" : \"2019-07-28\"\n" +
                 "}";
         //service.createIndex("idx_clouthing", null, null);
-        IndexResponse response = service.addDoc("idx_clouthing","11111", source);
+        IndexResponse response = service.addDoc("nf_index_test","11111", source);
 
         return response;
     }
